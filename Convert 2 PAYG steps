@@ -1,0 +1,24 @@
+//SQL Paid to PAYG Conversion steps
+
+
+Download Script:  sql-server-samples/samples/manage/azure-arc-enabled-sql-server/modify-license-type/modify-arc-sql-license-type.ps1 at master · microsoft/sql-server-samples
+
+
+	1. Login to the machine using AzConnect
+Connect-AzAccount -UseDeviceAuthentication
+
+	2. Select subscription
+
+	3. Install Modules - 
+ Install-Module Az.Accounts, Az.ConnectedMachine, Az.ResourceGraph -Scope CurrentUser
+
+	4. Report on the machine count or create machine csv file.
+.\modify-arc-sql-license-type.ps1 -SubId "5d2da101-2909-479c-a12f-c07083da7c18" -ResourceGroup "rg-arcbox-itpro-cac-001" -LicenseType "PAYG"  -ReportOnly
+
+
+	5. Optional if needed: Add below in front if ps script is not getting bypassed or getting flagged. 
+powershell.exe -ExecutionPolicy Bypass -File
+
+
+	6.  Convert to PAYG
+powershell.exe -ExecutionPolicy Bypass -File .\modify-arc-sql-license-type.ps1 -SubId "5d2da101-2909-479c-a12f-c07083da7c18" -ResourceGroup "rg-arcbox-itpro-cac-001" -MachineName ".\machines.csv" -LicenseType "PAYG" -Force
