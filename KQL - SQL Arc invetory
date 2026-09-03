@@ -1,0 +1,21 @@
+\\Create inventory of Arc Enabled SQL Server instances, corresponding vCore and billable vCore for PAYG model
+
+resources
+| where type =~ "microsoft.azurearcdata/sqlserverinstances"
+| extend
+    MachineName = tostring(properties.containerResourceId),
+    SqlEdition = tostring(properties.edition),
+    SqlVersion = tostring(properties.version),
+    CoreCount = toint(properties.vCore)
+| extend
+    BillableCoreCount = iff(CoreCount < 4, 4, CoreCount)
+| project
+    subscriptionId,
+    resourceGroup,
+    name,
+    MachineName,
+    SqlEdition,
+    SqlVersion,
+    CoreCount,
+    BillableCoreCount
+| order by MachineName asc
