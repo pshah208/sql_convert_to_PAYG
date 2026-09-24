@@ -1,0 +1,44 @@
+ resources
+ | where type =~ "microsoft.hybridcompute/machines/extensions"
+ | where tostring(properties.type) in ("WindowsAgent.SqlServer","LinuxAgent.SqlServer")
+ | extend machineId       = tolower(substring(id, 0, indexof(id, "/extensions/"))),
+          License_Type    = tostring(properties.settings.LicenseType),
+          Extension_State = tostring(properties.provisioningState),
+          ESU             = iff(properties.settings.enableExtendedSecurityUpdates == true, "enabled", "disabled")
+ | summarize License_Type    = take_any(License_Type),
+             Extension_State = take_any(Extension_State),
+             ESU             = take_any(ESU)
+          by machineId
+ | join kind=inner (
+     resources
+     | where type =~ "microsoft.hybridcompute/machines"
+     | project machineId   = tolower(tostring(id)),
+               MachineName = name,
+               resourceGroup,
+               subscriptionId,
+               CoreCount   = toint(properties.detectedProperties.coreCount)
+ ) on machineId
+ | join kind=inner (
+     resources
+     | where type =~ 'microsoft.azurearcdata/sqlserverinstances'
+     | extend containerId = tolower(tostring(properties.containerResourceId))
+     | where isnotempty(containerId)
+     | summarize Editions      = make_set(tostring(properties.edition)),
+                 Versions      = make_set(tostring(properties.version)),
+                 SQL_instances = make_set(name),
+                 InstanceCount = count()
+              by containerId
+ ) on $left.machineId == $right.containerId
+ | extend BilledEdition = case(
+       Editions has "Enterprise", "Enterprise",
+       Editions has "Standard",   "Standard",
+       strcat_array(Editions, "/"))
+ | extend Action = case(
+       BilledEdition !in ("Enterprise","Standard"), "SKIP - free edition",
+       Extension_State != "Succeeded",              strcat("BLOCKED - extension ", Extension_State),
+       License_Type =~ "PAYG",                      "Already PAYG",
+                                                    strcat("CONVERT from ", License_Type))
+ | project MachineName, resourceGroup, subscriptionId, Action,
+           BilledEdition, CoreCount, InstanceCount,
+           License_Type, ESU, Extension_State, Editions, Versions, SQL_instances
+ | order by Action asc, CoreCount desc, MachineName asc
