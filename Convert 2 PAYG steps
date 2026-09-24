@@ -3,6 +3,9 @@
 
 Download Script:  sql-server-samples/samples/manage/azure-arc-enabled-sql-server/modify-license-type/modify-arc-sql-license-type.ps1 at master · microsoft/sql-server-samples
 
+//Befor running the scripts, either reduce the pCore license resource to 16 and deactivate it if you are conversting all the servers to vCore. 
+//If you are not converting all the servers, reduce it to number of cores that will correspond to the servers staying on pCore. Save the resource type
+
 
 	1. Login to the machine using AzConnect
 Connect-AzAccount -UseDeviceAuthentication
